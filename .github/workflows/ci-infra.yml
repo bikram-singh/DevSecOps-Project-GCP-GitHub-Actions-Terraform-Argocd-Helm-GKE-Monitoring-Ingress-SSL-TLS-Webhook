@@ -183,4 +183,8 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Open full report: [Download Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+<<<<<<< HEAD
           cat reports/summary.html >> $GITHUB_STEP_SUMMARY
+=======
+          cat reports/summary.html >> $GITHUB_STEP_SUMMARY
+>>>>>>> 8c16c1c62892e133d837f589ba7f641e74768ae8
