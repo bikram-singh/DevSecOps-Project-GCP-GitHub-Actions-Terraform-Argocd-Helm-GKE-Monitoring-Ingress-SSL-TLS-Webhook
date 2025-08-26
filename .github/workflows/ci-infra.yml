@@ -55,9 +55,18 @@ jobs:
           gcloud auth configure-docker us-central1-docker.pkg.dev  
 
       # ------------------------------
-      # Step 4: Conditional Pipeline
+      # Step 4: Install SonarQube Scanner
       # ------------------------------
-      - name: 4️⃣ Run CI/CD or Infra Pipeline
+      - name: 4️⃣ Install SonarQube Scanner
+        run: |
+          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip
+          unzip sonar-scanner-cli-5.14.0.2215-linux.zip
+          export PATH="$PWD/sonar-scanner-5.14.0.2215-linux/bin:$PATH"
+
+      # ------------------------------
+      # Step 5: Conditional Pipeline
+      # ------------------------------
+      - name: 5️⃣ Run CI/CD or Infra Pipeline
         shell: bash
         run: |
           mkdir -p reports
@@ -65,12 +74,12 @@ jobs:
           if [[ "${{ github.event.inputs.PIPELINE }}" == "ci" ]]; then
             echo "Running Application CI/CD pipeline..."
             # ------------------------------
-            # 4.1 Trivy Filesystem Scan
+            # 5.1 Trivy Filesystem Scan
             # ------------------------------
             trivy fs --format json --output reports/trivy-fs.json app/
 
             # ------------------------------
-            # 4.2 SonarQube Analysis
+            # 5.2 SonarQube Analysis
             # ------------------------------
             sonar-scanner \
               -Dsonar.projectKey=app \
@@ -78,7 +87,7 @@ jobs:
               -Dsonar.login=$SONAR_TOKEN
               
             # ------------------------------
-            # 4.3 SonarQube Quality Gate Check + Save JSON
+            # 5.3 SonarQube Quality Gate Check + Save JSON
             # ------------------------------
             curl -s -u $SONAR_TOKEN: "https://sonarqube.example.com/api/qualitygates/project_status?projectKey=app" \
               -o reports/sonarqube.json
@@ -89,13 +98,13 @@ jobs:
             fi
             
             # ------------------------------
-            # 4.4 OWASP Dependency Check
+            # 5.4 OWASP Dependency Check
             # ------------------------------
             dependency-check.sh --scan ./app --disableYarnAudit --disableNodeAudit \
               --format XML --out reports/dependency-check.xml
               
             # ------------------------------
-            # 4.5 Docker Build & Push
+            # 5.5 Docker Build & Push
             # ------------------------------
             docker build -t hello:latest ./app
             docker tag hello:latest us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
@@ -104,14 +113,14 @@ jobs:
             docker push us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:latest
             
             # ------------------------------
-            # 4.6 Trivy Docker Image Scan
+            # 5.6 Trivy Docker Image Scan
             # ------------------------------
             trivy image --format json \
               --output reports/trivy-image.json \
               us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
               
             # ------------------------------
-            # 4.7 Update Helm Chart
+            # 5.7 Update Helm Chart
             # ------------------------------
             sed -i "s|image:.*|image: us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG|" helm/values.yaml
             git config user.email "bikram23march@gmail.com"
@@ -121,7 +130,7 @@ jobs:
             git push https://x-access-token:$GITHUB_TOKEN@github.com/bikram-singh/DevSecOps-Project-GCP-Jenkins-Terraform-Argocd-Helm-GKE-Ingress-SSL-TLS-Webhook.git main
 
             # ------------------------------
-            # 4.8 Generate HTML Summary Report
+            # 5.8 Generate HTML Summary Report
             # ------------------------------
             echo "<html><head><title>CI/CD Summary</title></head><body>" > reports/summary.html
             echo "<h1>✅ CI/CD Pipeline Report</h1>" >> reports/summary.html
@@ -167,12 +176,11 @@ jobs:
               terraform destroy -auto-approve
             fi
             echo "✅ Infra pipeline completed successfully."
-          fi
 
       # ------------------------------
-      # Step 5: Upload Reports
+      # Step 6: Upload Reports
       # ------------------------------
-      - name: 5️⃣ Upload Reports
+      - name: 6️⃣ Upload Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -180,9 +188,9 @@ jobs:
           path: reports/
 
       # ------------------------------
-      # Step 6: Attach HTML Summary to GitHub Job
+      # Step 7: Attach HTML Summary to GitHub Job
       # ------------------------------
-      - name: 6️⃣ Publish HTML Summary
+      - name: 7️⃣ Publish HTML Summary
         if: always()
         run: |
           echo "### 📝 CI/CD Security Summary" >> $GITHUB_STEP_SUMMARY
