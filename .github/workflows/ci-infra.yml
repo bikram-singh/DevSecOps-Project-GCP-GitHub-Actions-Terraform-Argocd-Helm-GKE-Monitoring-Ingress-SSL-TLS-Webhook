@@ -59,8 +59,8 @@ jobs:
       # ------------------------------
       - name: 4️⃣ Install SonarQube Scanner
         run: |
-          wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip
-          unzip sonar-scanner-cli-5.14.0.2215-linux.zip
+          curl -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip -o sonar-scanner-cli.zip
+          unzip sonar-scanner-cli.zip
           export PATH="$PWD/sonar-scanner-5.14.0.2215-linux/bin:$PATH"
 
       # ------------------------------
