@@ -43,10 +43,10 @@ jobs:
       # ------------------------------
       - name: 2️⃣ Setup GCP Credentials
         run: |
-          echo "${{ secrets.GCP_SA_KEY }}" > $GOOGLE_APPLICATION_CREDENTIALS
+          printf '%s' "${{ secrets.GCP_SA_KEY }}" > $GOOGLE_APPLICATION_CREDENTIALS
           gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
           gcloud config set project $GOOGLE_CLOUD_PROJECT
-          gcloud auth configure-docker us-central1-docker.pkg.dev
+          gcloud auth configure-docker us-central1-docker.pkg.dev  
 
       # ------------------------------
       # Step 3: Conditional Pipeline
