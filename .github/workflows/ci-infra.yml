@@ -55,10 +55,12 @@ jobs:
           gcloud auth configure-docker us-central1-docker.pkg.dev  
 
       # ------------------------------
-      # Step 4: Install SonarQube Scanner
+      # Step 4: Install SonarQube Scanner & Install unzip curl
       # ------------------------------
       - name: 4️⃣ Install SonarQube Scanner
         run: |
+          sudo apt-get update
+          sudo apt-get install -y unzip curl
           curl -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip -o sonar-scanner-cli.zip
           unzip sonar-scanner-cli.zip
           export PATH="$PWD/sonar-scanner-5.14.0.2215-linux/bin:$PATH"
