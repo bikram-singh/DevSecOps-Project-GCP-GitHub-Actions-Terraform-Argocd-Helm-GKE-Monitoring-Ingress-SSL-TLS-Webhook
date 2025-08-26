@@ -1,0 +1,144 @@
+name: DevSecOps CI/CD & Infra Pipeline
+
+on:
+  workflow_dispatch:
+    inputs:
+      PIPELINE:
+        description: 'ci for application, infra for GKE Terraform'
+        required: true
+        default: 'ci'
+        type: choice
+        options:
+          - ci
+          - infra
+      ACTION:
+        description: 'Terraform action (ignored for ci)'
+        required: false
+        default: 'apply'
+        type: choice
+        options:
+          - apply
+          - destroy
+
+jobs:
+  pipeline:
+    runs-on: self-hosted
+    env:
+      IMAGE_TAG: "1.0.${{ github.run_number }}"
+      GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}
+      GOOGLE_APPLICATION_CREDENTIALS: /tmp/gcp-key.json
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    steps:
+
+      # ------------------------------
+      # Step 1: Checkout Repository
+      # ------------------------------
+      - name: 1️⃣ Checkout Code
+        uses: actions/checkout@v3
+
+      # ------------------------------
+      # Step 2: Setup GCP Authentication
+      # ------------------------------
+      - name: 2️⃣ Setup GCP Credentials
+        run: |
+          echo "${{ secrets.GCP_SA_KEY }}" > $GOOGLE_APPLICATION_CREDENTIALS
+          gcloud auth activate-service-account --key-file=$GOOGLE_APPLICATION_CREDENTIALS
+          gcloud config set project $GOOGLE_CLOUD_PROJECT
+          gcloud auth configure-docker us-central1-docker.pkg.dev
+
+      # ------------------------------
+      # Step 3: Conditional Pipeline Selector
+      # ------------------------------
+      - name: 3️⃣ Run CI/CD or Infra Pipeline
+        shell: bash
+        run: |
+          if [[ "${{ github.event.inputs.PIPELINE }}" == "ci" ]]; then
+            echo "Running Application CI/CD pipeline..."
+
+            # ------------------------------
+            # 3.1 Trivy Filesystem Scan
+            # ------------------------------
+            echo "3.1 Trivy Scan - filesystem vulnerabilities"
+            trivy fs app/
+
+            # ------------------------------
+            # 3.2 SonarQube Analysis
+            # ------------------------------
+            echo "3.2 SonarQube Analysis"
+            sonar-scanner \
+              -Dsonar.projectKey=app \
+              -Dsonar.projectName=app \
+              -Dsonar.login=$SONAR_TOKEN
+
+            # ------------------------------
+            # 3.3 SonarQube Quality Gate Check
+            # ------------------------------
+            echo "3.3 Checking SonarQube Quality Gate"
+            SONAR_STATUS=$(curl -s -u $SONAR_TOKEN: "https://sonarqube.example.com/api/qualitygates/project_status?projectKey=app" | jq -r '.projectStatus.status')
+            if [[ "$SONAR_STATUS" != "OK" ]]; then
+              echo "Quality Gate failed: $SONAR_STATUS"
+              exit 1
+            fi
+
+            # ------------------------------
+            # 3.4 OWASP Dependency Check
+            # ------------------------------
+            echo "3.4 Running OWASP Dependency Check"
+            dependency-check.sh --scan ./app --disableYarnAudit --disableNodeAudit --format XML --out reports
+
+            # ------------------------------
+            # 3.5 Docker Build & Push
+            # ------------------------------
+            echo "3.5 Build & Push Docker Image"
+            docker build -t hello:latest ./app
+            docker tag hello:latest us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
+            docker tag hello:latest us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:latest
+            docker push us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
+            docker push us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:latest
+
+            # ------------------------------
+            # 3.6 Trivy Docker Image Scan
+            # ------------------------------
+            echo "3.6 Trivy Scan - Docker Image"
+            trivy image us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
+
+            # ------------------------------
+            # 3.7 Update Helm Chart & Push
+            # ------------------------------
+            echo "3.7 Update Helm Chart values.yaml"
+            sed -i "s|image:.*|image: us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG|" helm/values.yaml
+
+            git config user.email "bikram23march@gmail.com"
+            git config user.name "bikram-singh"
+            git add helm/values.yaml
+            git commit -m "Update image to $IMAGE_TAG" || echo "No changes to commit"
+            git push https://x-access-token:$GITHUB_TOKEN@github.com/bikram-singh/DevSecOps-Project-GCP-Jenkins-Terraform-Argocd-Helm-GKE-Ingress-SSL-TLS-Webhook.git main
+
+            echo "✅ CI/CD pipeline completed successfully."
+
+          else
+            echo "Running Infrastructure Pipeline..."
+            cd gke-terraform
+
+            # ------------------------------
+            # 3.8 Terraform Init
+            # ------------------------------
+            echo "3.8 Terraform Init"
+            terraform init
+
+            # ------------------------------
+            # 3.9 Terraform Apply / Destroy
+            # ------------------------------
+            if [[ "${{ github.event.inputs.ACTION }}" == "apply" ]]; then
+              echo "3.9 Terraform Apply"
+              terraform plan
+              terraform apply -auto-approve
+            else
+              echo "3.9 Terraform Destroy"
+              terraform destroy -auto-approve
+            fi
+
+            echo "✅ Infra pipeline completed successfully."
+          fi
