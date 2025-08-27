@@ -80,6 +80,7 @@ jobs:
               sonarsource/sonar-scanner-cli:latest \
               -Dsonar.projectKey=app \
               -Dsonar.sources=/usr/src/app
+              -Dsonar.login="$SONAR_TOKEN"
 
             # ------------------------------
             # 4.3 SonarQube Quality Gate Check + Save JSON
