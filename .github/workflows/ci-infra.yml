@@ -62,8 +62,10 @@ jobs:
           sudo dnf update -y
           sudo dnf install -y unzip curl
           sudo rm -f sonar-scanner-cli.zip
-          curl -sSL -o sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip
+          curl -sSL -o sonar-scanner-cli.zip \
+            https://get.sonarsource.com/sonar-scanner-cli-5.14.0.2215-linux.zip
           ls -lh sonar-scanner-cli.zip
+          unzip -t sonar-scanner-cli.zip
           unzip sonar-scanner-cli.zip -d $HOME
           mv $HOME/sonar-scanner-5.14.0.2215-linux $HOME/sonar-scanner
           echo "$HOME/sonar-scanner/bin" >> $GITHUB_PATH
