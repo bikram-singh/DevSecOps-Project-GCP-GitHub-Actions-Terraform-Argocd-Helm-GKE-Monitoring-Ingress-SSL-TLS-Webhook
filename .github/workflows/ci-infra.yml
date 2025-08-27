@@ -1,3 +1,22 @@
+# DevSecOps CI/CD & Infra Pipeline Using GitHub Actions
+#
+# Step 1: Checkout Code - GitHub Actions checkout: Pulls the repository code to the runner
+# Step 2: Authenticate to Google Cloud - google-github-actions/auth: Authenticate using a Service Account for GCP operations
+# Step 3: Setup GCP Project & Docker Authentication - gcloud CLI: Set GCP project & configure Docker for Artifact Registry
+# Step 4: Run CI/CD Pipeline
+#   4.1 Trivy Filesystem Scan - Trivy: Scan local app code for vulnerabilities
+#   4.2 SonarQube Project Ensure + Analysis - SonarQube: Ensure project exists, run static code analysis
+#   4.3 SonarQube Quality Gate Check - SonarQube: Wait for quality gate result to pass/fail build
+#   4.4 OWASP Dependency Check - OWASP Dependency Check: Scan dependencies for known vulnerabilities
+#   4.5 Docker Build & Push - Docker CLI: Build Docker image, tag, and push to GCP Artifact Registry
+#   4.6 Trivy Docker Image Scan - Trivy: Scan pushed Docker image for vulnerabilities
+#   4.7 Update Helm Chart & Push - Helm + Git: Update Helm values with new image tag and commit changes
+#   4.8 Generate HTML Summary Report - HTML + Bash: Generate CI/CD pipeline summary with scan results
+# Step 5: Run Infrastructure Pipeline - Terraform: Apply/destroy GKE infrastructure
+# Step 6: Upload Reports - actions/upload-artifact: Upload CI/CD security scan reports
+# Step 7: Publish HTML Summary - GitHub Actions job summary: Attach HTML summary of CI/CD pipeline to GitHub job
+
+
 name: DevSecOps CI/CD & Infra Pipeline Using GitHub Actions
 
 on:
