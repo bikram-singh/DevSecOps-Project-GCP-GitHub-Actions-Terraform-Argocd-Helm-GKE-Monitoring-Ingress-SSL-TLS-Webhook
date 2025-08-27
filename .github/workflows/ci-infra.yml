@@ -1,4 +1,4 @@
-name: DevSecOps CI/CD & Infra Pipeline
+name: DevSecOps CI/CD & Infra Pipeline Using GitHub Actions
 
 on:
   workflow_dispatch:
