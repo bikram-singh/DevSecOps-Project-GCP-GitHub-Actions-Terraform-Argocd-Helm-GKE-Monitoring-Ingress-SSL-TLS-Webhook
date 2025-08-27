@@ -16,7 +16,6 @@
 # Step 6: Upload Reports - actions/upload-artifact: Upload CI/CD security scan reports
 # Step 7: Publish HTML Summary - GitHub Actions job summary: Attach HTML summary of CI/CD pipeline to GitHub job
 
-
 name: DevSecOps CI/CD & Infra Pipeline Using GitHub Actions
 
 on:
@@ -159,9 +158,18 @@ jobs:
           done
 
           # ------------------------------
-          # 4.4 OWASP Dependency Check (commented)
+          # 4.3.1 Cache OWASP Dependency-Check Database
           # ------------------------------
-          docker run --rm -v $PWD:/src owasp/dependency-check:latest \
+          echo "📦 Restoring OWASP Dependency-Check DB from cache (if available)..."
+          mkdir -p ~/.dependency-check
+
+          # ------------------------------
+          # 4.4 OWASP Dependency Check
+          # ------------------------------
+          docker run --rm \
+            -v $PWD:/src \
+            -v ~/.dependency-check:/usr/share/dependency-check/data \
+            owasp/dependency-check:latest \
             --scan /src/app --disableYarnAudit --disableNodeAudit \
             --format XML --out /src/reports/dependency-check.xml
 
