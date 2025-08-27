@@ -55,79 +55,67 @@ jobs:
           gcloud auth configure-docker us-central1-docker.pkg.dev  
 
       # ------------------------------
-      # Step 4: Install SonarQube Scanner & Install unzip curl
+      # Step 4: Conditional Pipeline
       # ------------------------------
-      - name: 4️⃣ Install SonarQube Scanner
-        run: |
-          sudo dnf update -y
-          sudo dnf install -y unzip curl
-          sudo rm -f sonar-scanner-cli.zip
-          curl -sSL -o sonar-scanner-cli.zip \
-            https://get.sonarsource.com/sonar-scanner-cli-5.14.0.2215-linux.zip
-          ls -lh sonar-scanner-cli.zip
-          unzip -t sonar-scanner-cli.zip
-          unzip sonar-scanner-cli.zip -d $HOME
-          mv $HOME/sonar-scanner-5.14.0.2215-linux $HOME/sonar-scanner
-          echo "$HOME/sonar-scanner/bin" >> $GITHUB_PATH
-
-      # ------------------------------
-      # Step 5: Conditional Pipeline
-      # ------------------------------
-      - name: 5️⃣ Run CI/CD or Infra Pipeline
+      - name: 4️⃣ Run CI/CD or Infra Pipeline
         shell: bash
         run: |
           mkdir -p reports
 
           if [[ "${{ github.event.inputs.PIPELINE }}" == "ci" ]]; then
             echo "Running Application CI/CD pipeline..."
+
             # ------------------------------
-            # 5.1 Trivy Filesystem Scan
+            # 4.1 Trivy Filesystem Scan
             # ------------------------------
             trivy fs --format json --output reports/trivy-fs.json app/
 
             # ------------------------------
-            # 5.2 SonarQube Analysis
+            # 4.2 SonarQube Analysis using Docker Scanner
             # ------------------------------
-            sonar-scanner \
+            docker run --rm \
+              -v $(pwd):/usr/src \
+              -e SONAR_HOST_URL="http://localhost:9000" \
+              -e SONAR_LOGIN="$SONAR_TOKEN" \
+              sonarsource/sonar-scanner-cli:latest \
               -Dsonar.projectKey=app \
-              -Dsonar.projectName=app \
-              -Dsonar.login=$SONAR_TOKEN
-              
+              -Dsonar.sources=/usr/src/app
+
             # ------------------------------
-            # 5.3 SonarQube Quality Gate Check + Save JSON
+            # 4.3 SonarQube Quality Gate Check + Save JSON
             # ------------------------------
-            curl -s -u $SONAR_TOKEN: "https://sonarqube.example.com/api/qualitygates/project_status?projectKey=app" \
+            curl -s -u $SONAR_TOKEN: "http://localhost:9000/api/qualitygates/project_status?projectKey=app" \
               -o reports/sonarqube.json
             SONAR_STATUS=$(jq -r '.projectStatus.status' reports/sonarqube.json)
             if [[ "$SONAR_STATUS" != "OK" ]]; then
               echo "❌ SonarQube Quality Gate failed: $SONAR_STATUS"
               exit 1
             fi
-            
+
             # ------------------------------
-            # 5.4 OWASP Dependency Check
+            # 4.4 OWASP Dependency Check
             # ------------------------------
             dependency-check.sh --scan ./app --disableYarnAudit --disableNodeAudit \
               --format XML --out reports/dependency-check.xml
-              
+
             # ------------------------------
-            # 5.5 Docker Build & Push
+            # 4.5 Docker Build & Push
             # ------------------------------
             docker build -t hello:latest ./app
             docker tag hello:latest us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
             docker tag hello:latest us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:latest
             docker push us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
             docker push us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:latest
-            
+
             # ------------------------------
-            # 5.6 Trivy Docker Image Scan
+            # 4.6 Trivy Docker Image Scan
             # ------------------------------
             trivy image --format json \
               --output reports/trivy-image.json \
               us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG
-              
+
             # ------------------------------
-            # 5.7 Update Helm Chart
+            # 4.7 Update Helm Chart
             # ------------------------------
             sed -i "s|image:.*|image: us-central1-docker.pkg.dev/$GOOGLE_CLOUD_PROJECT/docker-repo/hello:$IMAGE_TAG|" helm/values.yaml
             git config user.email "bikram23march@gmail.com"
@@ -137,34 +125,28 @@ jobs:
             git push https://x-access-token:$GITHUB_TOKEN@github.com/bikram-singh/DevSecOps-Project-GCP-Jenkins-Terraform-Argocd-Helm-GKE-Ingress-SSL-TLS-Webhook.git main
 
             # ------------------------------
-            # 5.8 Generate HTML Summary Report
+            # 4.8 Generate HTML Summary Report
             # ------------------------------
             echo "<html><head><title>CI/CD Summary</title></head><body>" > reports/summary.html
             echo "<h1>✅ CI/CD Pipeline Report</h1>" >> reports/summary.html
 
             # SonarQube Result
             echo "<h2>SonarQube Quality Gate</h2>" >> reports/summary.html
-            if [[ \"$SONAR_STATUS\" == \"OK\" ]]; then
+            if [[ "$SONAR_STATUS" == "OK" ]]; then
               echo "<p style='color:green'>✅ PASSED</p>" >> reports/summary.html
             else
               echo "<p style='color:red'>❌ FAILED ($SONAR_STATUS)</p>" >> reports/summary.html
             fi
 
-            # ------------------------------
             # Trivy FS
-            # ------------------------------
             TRIVY_FS_CRIT=$(jq '.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")' reports/trivy-fs.json | wc -l || true)
             echo "<h2>Trivy Filesystem Scan</h2><p>Critical Issues: $TRIVY_FS_CRIT</p>" >> reports/summary.html
-            
-            # ------------------------------
+
             # Trivy Image
-            # ------------------------------
             TRIVY_IMG_CRIT=$(jq '.Results[].Vulnerabilities[]? | select(.Severity=="CRITICAL")' reports/trivy-image.json | wc -l || true)
             echo "<h2>Trivy Docker Image Scan</h2><p>Critical Issues: $TRIVY_IMG_CRIT</p>" >> reports/summary.html
-            
-            # ------------------------------
+
             # OWASP
-            # ------------------------------
             OWASP_CRIT=$(grep -c "CRITICAL" reports/dependency-check.xml || true)
             echo "<h2>OWASP Dependency Check</h2><p>Critical Issues: $OWASP_CRIT</p>" >> reports/summary.html
 
@@ -183,11 +165,12 @@ jobs:
               terraform destroy -auto-approve
             fi
             echo "✅ Infra pipeline completed successfully."
+          fi
 
       # ------------------------------
-      # Step 6: Upload Reports
+      # Step 5: Upload Reports
       # ------------------------------
-      - name: 6️⃣ Upload Reports
+      - name: 5️⃣ Upload Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -195,9 +178,9 @@ jobs:
           path: reports/
 
       # ------------------------------
-      # Step 7: Attach HTML Summary to GitHub Job
+      # Step 6: Attach HTML Summary to GitHub Job
       # ------------------------------
-      - name: 7️⃣ Publish HTML Summary
+      - name: 6️⃣ Publish HTML Summary
         if: always()
         run: |
           echo "### 📝 CI/CD Security Summary" >> $GITHUB_STEP_SUMMARY
