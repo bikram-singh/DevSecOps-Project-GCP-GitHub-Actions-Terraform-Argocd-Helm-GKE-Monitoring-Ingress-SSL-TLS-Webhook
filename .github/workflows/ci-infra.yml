@@ -61,9 +61,10 @@ jobs:
         run: |
           sudo dnf update -y
           sudo dnf install -y unzip curl
-          curl -L https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip -o sonar-scanner-cli.zip
-          unzip sonar-scanner-cli.zip
-          export PATH="$PWD/sonar-scanner-5.14.0.2215-linux/bin:$PATH"
+          curl -sSL -o sonar-scanner-cli.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.14.0.2215-linux.zip
+          unzip sonar-scanner-cli.zip -d $HOME
+          mv $HOME/sonar-scanner-5.14.0.2215-linux $HOME/sonar-scanner
+          echo "$HOME/sonar-scanner/bin" >> $GITHUB_PATH
 
       # ------------------------------
       # Step 5: Conditional Pipeline
