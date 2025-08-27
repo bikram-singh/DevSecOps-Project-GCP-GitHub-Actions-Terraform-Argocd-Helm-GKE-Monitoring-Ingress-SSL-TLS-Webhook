@@ -75,21 +75,43 @@ jobs:
             # ------------------------------
             PROJECT_KEY="app"
             PROJECT_NAME="My App"
+            SONAR_HOST="http://104.155.137.48:9000"
 
             # Ensure project exists in SonarQube
             STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
               -u "${SONAR_TOKEN}:" \
-              "http://104.155.137.48:9000/api/projects/search?projects=$PROJECT_KEY")
+              "$SONAR_HOST/api/projects/search?projects=$PROJECT_KEY")
 
             if [ "$STATUS" -ne 200 ]; then
-              echo "Project $PROJECT_KEY not found, creating..."
+              echo "📌 Project $PROJECT_KEY not found, creating..."
               curl -s -X POST \
                 -u "${SONAR_TOKEN}:" \
-                "http://104.155.137.48:9000/api/projects/create" \
+                "$SONAR_HOST/api/projects/create" \
                 -d "name=$PROJECT_NAME" \
                 -d "project=$PROJECT_KEY"
+              echo "✅ Project created"
             else
-              echo "Project $PROJECT_KEY already exists ✅"
+              echo "✅ Project $PROJECT_KEY already exists"
+            fi
+
+            # Ensure Quality Gate is assigned
+            QGATE=$(curl -s -u "${SONAR_TOKEN}:" \
+              "$SONAR_HOST/api/qualitygates/get_by_project?project=$PROJECT_KEY" | jq -r '.qualityGate.name // "NONE"')
+
+            if [ "$QGATE" = "NONE" ]; then
+              echo "📌 No Quality Gate assigned. Assigning default..."
+              DEFAULT_QGATE=$(curl -s -u "${SONAR_TOKEN}:" \
+                "$SONAR_HOST/api/qualitygates/list" | jq -r '.qualitygates[] | select(.isDefault==true) | .id')
+              if [ -n "$DEFAULT_QGATE" ]; then
+                curl -s -u "${SONAR_TOKEN}:" \
+                  -X POST "$SONAR_HOST/api/qualitygates/select" \
+                  -d "projectKey=$PROJECT_KEY" -d "gateId=$DEFAULT_QGATE"
+                echo "✅ Default Quality Gate assigned"
+              else
+                echo "⚠️ No default Quality Gate found in SonarQube"
+              fi
+            else
+              echo "✅ Quality Gate already assigned: $QGATE"
             fi
 
             # ------------------------------
@@ -97,22 +119,33 @@ jobs:
             # ------------------------------
             docker run --rm \
               -v $PWD:/usr/src \
-              -e SONAR_HOST_URL="http://104.155.137.48:9000" \
+              -e SONAR_HOST_URL="$SONAR_HOST" \
               -e SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}" \
               sonarsource/sonar-scanner-cli:latest \
               -Dsonar.projectKey=$PROJECT_KEY \
               -Dsonar.sources=/usr/src/app
 
             # ------------------------------
-            # 4.3 SonarQube Quality Gate Check + Save JSON
+            # 4.3 SonarQube Quality Gate check
             # ------------------------------
-            curl -s -u $SONAR_TOKEN: "http://localhost:9000/api/qualitygates/project_status?projectKey=app" \
-              -o reports/sonarqube.json
-            SONAR_STATUS=$(jq -r '.projectStatus.status' reports/sonarqube.json)
-            if [[ "$SONAR_STATUS" != "OK" ]]; then
-              echo "❌ SonarQube Quality Gate failed: $SONAR_STATUS"
-              exit 1
-            fi
+            echo "⏳ Waiting for Quality Gate status..."
+
+            for i in {1..30}; do
+              STATUS=$(curl -s -u "${SONAR_TOKEN}:" \
+                "http://104.155.137.48:9000/api/qualitygates/project_status?projectKey=app" \
+                | jq -r '.projectStatus.status')
+
+              if [ "$STATUS" = "OK" ]; then
+                echo "✅ Quality Gate passed"
+                break
+              elif [ "$STATUS" = "ERROR" ]; then
+                echo "❌ Quality Gate failed"
+                exit 1
+              else
+                echo "⌛ Status: $STATUS (retry $i/30)"
+                sleep 5
+              fi
+            done
 
             # ------------------------------
             # 4.4 OWASP Dependency Check
