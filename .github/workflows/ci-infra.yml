@@ -98,7 +98,7 @@ jobs:
             docker run --rm \
               -v $PWD:/usr/src \
               -e SONAR_HOST_URL="http://104.155.137.48:9000" \
-              -e SONAR_LOGIN="${SONAR_TOKEN}" \
+              -e SONAR_TOKEN="${{ secrets.SONAR_TOKEN }}" \
               sonarsource/sonar-scanner-cli:latest \
               -Dsonar.projectKey=$PROJECT_KEY \
               -Dsonar.sources=/usr/src/app
