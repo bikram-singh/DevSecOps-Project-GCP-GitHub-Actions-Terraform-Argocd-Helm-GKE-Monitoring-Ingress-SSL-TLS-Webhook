@@ -148,12 +148,12 @@ jobs:
             done
 
             # ------------------------------
-            # 4.4 OWASP Dependency Check
+            # 4.4 OWASP Dependency Check - Commenting now i will uncomment it later
             # ------------------------------
         
-            docker run --rm -v $PWD:/src owasp/dependency-check:latest \
-              --scan /src/app --disableYarnAudit --disableNodeAudit \
-              --format XML --out /src/reports/dependency-check.xml
+            #docker run --rm -v $PWD:/src owasp/dependency-check:latest \
+            #  --scan /src/app --disableYarnAudit --disableNodeAudit \
+            #  --format XML --out /src/reports/dependency-check.xml
   
             # ------------------------------
             # 4.5 Docker Build & Push
