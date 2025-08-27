@@ -223,5 +223,10 @@ jobs:
           echo "### 📝 CI/CD Security Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Open full report: [Download Artifact](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          cat reports/summary.html >> $GITHUB_STEP_SUMMARY
+          echo ""
+          if [ -f reports/summary.html ]; then
+            cat reports/summary.html >> $GITHUB_STEP_SUMMARY
+          else
+            echo "⚠️ reports/summary.html not found, skipping append."
+          fi
+
