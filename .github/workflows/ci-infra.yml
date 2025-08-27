@@ -73,13 +73,15 @@ jobs:
             # ------------------------------
             # 4.2 SonarQube Analysis using Docker Scanner
             # ------------------------------
-            docker run --rm \
-              -v $(pwd):/usr/src \
-              -e SONAR_HOST_URL="http://104.155.137.48:9000/" \
-              -e SONAR_LOGIN="$SONAR_TOKEN" \
-              sonarsource/sonar-scanner-cli:latest \
-              -Dsonar.projectKey=app \
-              -Dsonar.sources=/usr/src/app
+            - name: Run SonarScanner via Docker
+              run: |
+                docker run --rm \
+                  -v $PWD:/usr/src \
+                  -e SONAR_HOST_URL="http://104.155.137.48:9000" \
+                  -e SONAR_LOGIN="$SONAR_TOKEN" \
+                  sonarsource/sonar-scanner-cli:latest \
+                  -Dsonar.projectKey=app \
+                  -Dsonar.sources=/usr/src/app
 
             # ------------------------------
             # 4.3 SonarQube Quality Gate Check + Save JSON
