@@ -27,7 +27,7 @@ jobs:
       IMAGE_TAG: "1.0.${{ github.run_number }}"
       GOOGLE_CLOUD_PROJECT: ${{ secrets.GCP_PROJECT }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      PAT_TOKEN: ${{ secrets.PAT_TOKEN }}
 
     steps:
 
@@ -179,7 +179,7 @@ jobs:
             git config user.name "bikram-singh"
             git add helm/values.yaml
             git commit -m "Update image to $IMAGE_TAG" || echo "No changes to commit"
-            git push https://x-access-token:$GITHUB_TOKEN@github.com/bikram-singh/DevSecOps-Project-GCP-Jenkins-Terraform-Argocd-Helm-GKE-Ingress-SSL-TLS-Webhook.git main
+            git push https://$PAT_TOKEN@github.com/bikram-singh/DevSecOps-Project-GCP-Jenkins-Terraform-Argocd-Helm-GKE-Ingress-SSL-TLS-Webhook.git main
 
             # ------------------------------
             # 4.8 Generate HTML Summary Report
