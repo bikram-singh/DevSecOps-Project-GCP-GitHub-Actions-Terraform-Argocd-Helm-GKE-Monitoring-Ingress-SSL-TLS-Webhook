@@ -139,9 +139,9 @@ jobs:
           # ------------------------------
           # 4.4 OWASP Dependency Check (commented)
           # ------------------------------
-          #docker run --rm -v $PWD:/src owasp/dependency-check:latest \
-          #  --scan /src/app --disableYarnAudit --disableNodeAudit \
-          #  --format XML --out /src/reports/dependency-check.xml
+          docker run --rm -v $PWD:/src owasp/dependency-check:latest \
+            --scan /src/app --disableYarnAudit --disableNodeAudit \
+            --format XML --out /src/reports/dependency-check.xml
 
           # ------------------------------
           # 4.5 Docker Build & Push
@@ -212,7 +212,7 @@ jobs:
       # Step 5: Upload Reports
       # ------------------------------
       - name: 5️⃣ Upload Reports
-        if: always()
+        if: ${{ github.event.inputs.PIPELINE == 'ci' && always() }}
         uses: actions/upload-artifact@v4
         with:
           name: security-reports
@@ -222,7 +222,7 @@ jobs:
       # Step 6: Attach HTML Summary to GitHub Job
       # ------------------------------
       - name: 6️⃣ Publish HTML Summary
-        if: always()
+        if: ${{ github.event.inputs.PIPELINE == 'ci' && always() }}
         run: |
           echo "### 📝 CI/CD Security Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
