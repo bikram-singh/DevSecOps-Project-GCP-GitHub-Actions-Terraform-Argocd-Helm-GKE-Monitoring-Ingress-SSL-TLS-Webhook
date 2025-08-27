@@ -71,16 +71,37 @@ jobs:
             trivy fs --format json --output reports/trivy-fs.json app/
 
             # ------------------------------
-            # 4.2 SonarQube Analysis using Docker Scanner
+            # 4.2 SonarQube Project Ensure + Analysis
+            # ------------------------------
+            PROJECT_KEY="app"
+            PROJECT_NAME="My App"
+
+            # Ensure project exists in SonarQube
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+              -u "${SONAR_TOKEN}:" \
+              "http://104.155.137.48:9000/api/projects/search?projects=$PROJECT_KEY")
+
+            if [ "$STATUS" -ne 200 ]; then
+              echo "Project $PROJECT_KEY not found, creating..."
+              curl -s -X POST \
+                -u "${SONAR_TOKEN}:" \
+                "http://104.155.137.48:9000/api/projects/create" \
+                -d "name=$PROJECT_NAME" \
+                -d "project=$PROJECT_KEY"
+            else
+              echo "Project $PROJECT_KEY already exists ✅"
+            fi
+
+            # ------------------------------
+            # Run SonarQube Scan
             # ------------------------------
             docker run --rm \
               -v $PWD:/usr/src \
               -e SONAR_HOST_URL="http://104.155.137.48:9000" \
-              -e SONAR_LOGIN="${{ secrets.SONAR_TOKEN }}" \
+              -e SONAR_LOGIN="${SONAR_TOKEN}" \
               sonarsource/sonar-scanner-cli:latest \
-              -Dsonar.projectKey=app \
+              -Dsonar.projectKey=$PROJECT_KEY \
               -Dsonar.sources=/usr/src/app
-              -Dsonar.login="$SONAR_TOKEN"
 
             # ------------------------------
             # 4.3 SonarQube Quality Gate Check + Save JSON
