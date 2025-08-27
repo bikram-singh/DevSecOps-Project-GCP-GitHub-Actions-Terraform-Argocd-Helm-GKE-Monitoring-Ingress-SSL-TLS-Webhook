@@ -150,9 +150,11 @@ jobs:
             # ------------------------------
             # 4.4 OWASP Dependency Check
             # ------------------------------
-            dependency-check.sh --scan ./app --disableYarnAudit --disableNodeAudit \
-              --format XML --out reports/dependency-check.xml
-
+        
+            docker run --rm -v $PWD:/src owasp/dependency-check:latest \
+              --scan /src/app --disableYarnAudit --disableNodeAudit \
+              --format XML --out /src/reports/dependency-check.xml
+  
             # ------------------------------
             # 4.5 Docker Build & Push
             # ------------------------------
