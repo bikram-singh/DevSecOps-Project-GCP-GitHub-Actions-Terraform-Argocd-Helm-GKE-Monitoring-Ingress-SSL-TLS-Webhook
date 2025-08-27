@@ -20,18 +20,20 @@
 name: DevSecOps CI/CD & Infra Pipeline Using GitHub Actions
 
 on:
+  push:
+    branches:
+      - main   # Trigger CI automatically on pushes to main branch
   workflow_dispatch:
     inputs:
       PIPELINE:
-        description: 'ci for application, infra for GKE Terraform'
+        description: 'Choose pipeline to run manually'
         required: true
-        default: 'ci'
+        default: 'infra'
         type: choice
         options:
-          - ci
           - infra
       ACTION:
-        description: 'Terraform action (ignored for ci)'
+        description: 'Terraform action (ignored for CI)'
         required: false
         default: 'apply'
         type: choice
