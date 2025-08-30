@@ -28,7 +28,7 @@ This project demonstrates a **complete DevSecOps pipeline** on **Google Cloud Pl
 - **ArgoCD** for GitOps-based continuous delivery
 - **Prometheus & Grafana** for monitoring and observability
 - **Nginx Ingress + Cert-Manager** for domain management and SSL/TLS
-- **Webhooks** for automation triggers
+
 
 ---
 
