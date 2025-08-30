@@ -203,5 +203,4 @@ helm install grafana grafana/grafana -n monitoring
 
 ---
 
-## 📜 License
-MIT License (if not already updated in repository).  
+
