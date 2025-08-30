@@ -1,4 +1,4 @@
-# DevSecOps Project – GCP + GitHub Actions + Terraform + ArgoCD + Helm + GKE + Monitoring + Ingress + SSL/TLS + Webhooks
+# DevSecOps Project – GCP + GitHub Actions + Terraform + ArgoCD + Helm + GKE + Monitoring + Ingress + SSL/TLS
 
 ## 🚀 Getting Started Quick Commands
 
