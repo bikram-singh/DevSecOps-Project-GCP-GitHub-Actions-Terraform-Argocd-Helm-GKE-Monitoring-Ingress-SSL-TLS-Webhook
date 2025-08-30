@@ -33,7 +33,8 @@ This project demonstrates a **complete DevSecOps pipeline** on **Google Cloud Pl
 ---
 
 ## 📐 Architecture Diagram
-*(Placeholder – add diagram.png here)*
+<img width="1285" height="299" alt="image" src="https://github.com/user-attachments/assets/12ffccf6-8142-4080-8d44-cef5c1bdeb44" />
+
 
 ---
 
