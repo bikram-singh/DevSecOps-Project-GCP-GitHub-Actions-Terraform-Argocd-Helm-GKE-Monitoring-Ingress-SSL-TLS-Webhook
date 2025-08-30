@@ -183,12 +183,6 @@ helm install grafana grafana/grafana -n monitoring
 
 ---
 
-## 🔔 Webhooks
-- GitHub Actions workflows can be triggered manually or by **push to branch**  
-- ArgoCD auto-sync acts as a webhook-driven deployment mechanism  
-
----
-
 ## 🔒 Security Best Practices
 - Use **IAP** or **Cloud NAT** instead of wide `0.0.0.0/0` firewall rules  
 - Store **secrets** in GitHub → `Settings > Secrets and Variables`  
